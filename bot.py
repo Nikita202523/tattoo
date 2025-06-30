@@ -437,6 +437,7 @@ async def save_reply(message: types.Message, state: FSMContext):
 @router.message(CommandStart())
 
 async def cmd_start(message: types.Message, bot: Bot, command: CommandObject):
+    await state.clear() 
     user_id = message.from_user.id
     ref_id = command.args  # ID пригласившего (если есть)
 
