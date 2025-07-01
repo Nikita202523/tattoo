@@ -707,6 +707,70 @@ async def show_portfolio(message: types.Message, state: FSMContext):
     await state.set_state(None)
     await message.answer("🖼 Моё портфолио здесь:\n👉 https://t.me/ne_kit_a_tattoo/14")
 
+@router.message(lambda msg: msg.text == "🚀 Начать")
+async def handle_launch_button(message: types.Message, bot: Bot):
+    await message.answer(
+    "👋 Привет! Бот работает,для чего он? Вот что с помощью него можно сделать:\n\n"
+    "🗓 Записаться на сеанс\n"
+    "🖼 Посмотреть портфолио\n"
+    "📚 Почитать ответы на частые вопросы\n"
+    "🎲 Играть и получать баллы,их тратим в магазине\n"
+    "👥Также баллы можно получать приглашая друзей\n"
+    "🛍 Совершать покупки в магазине за баллы,получи бесплатное тату!🙀\n"   
+    "🗣 Можно оставить отзыв или задать вопрос в разделе  -прочее-, позже я на него отвечу\n\n"
+    )
+
+@router.message(lambda msg: msg.text == "⬅️ Назад в меню")
+async def back_to_main(message: types.Message, state: FSMContext):
+    await state.clear()  # Сброс FSM состояния
+    await message.answer("⬅️ Главное меню", reply_markup=main_menu)
+
+@router.message(IsSubscribed(), lambda msg: msg.text == "📩 Пригласить друга")
+async def invite_friend(message: types.Message, state: FSMContext):
+    await state.clear()  # очищаем прошлый state, если есть
+    user_id = message.from_user.id
+    username = (await bot.get_me()).username
+    invite_link = f"https://t.me/{username}?start={user_id}"
+
+    await message.answer(
+        f"🔗 Приглашай друзей и получай баллы!\n"
+        f"Они должны играть 7 дней — тогда ты получишь +12 баллов.\n\n"
+        f"Твоя ссылка:\n<code>{invite_link}</code>",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📤 Поделиться", url=f"https://t.me/share/url?url={invite_link}")]
+        ])
+    )
+
+@router.message(IsSubscribed(), lambda msg: msg.text == "🎮 Игры")
+async def show_games_menu(message: types.Message, state: FSMContext):
+    await state.set_state(None)
+
+    now = datetime.now().time()
+    start_time = datetime.strptime("00:00", "%H:%M").time()
+    end_time = datetime.strptime("03:00", "%H:%M").time()
+    is_night = start_time <= now <= end_time or message.from_user.id == ADMIN_ID
+
+    keyboard = [
+        [KeyboardButton(text="🪨 Камень-ножницы-бумага")],
+        [KeyboardButton(text="🎡 Колесо Фортуны")]
+    ]
+    if is_night:
+        keyboard.append([KeyboardButton(text="🎰 Тату-Джекпот")])
+
+    keyboard.append([KeyboardButton(text="⬅️ Назад в меню")])
+
+    await message.answer(
+        "🎮 Выбери игру:\n\n"
+        "🪨 Камень-ножницы-бумага — сыграй с ботом\n"
+        "🎡 Колесо Фортуны — 1 раз в день шанс на халявные баллы\n\n"
+        + ("🎰 Тату-Джекпот доступен сейчас!" if is_night else "⏳ Джекпот доступен только ночью (00:00–03:00)"),
+        reply_markup=ReplyKeyboardMarkup(
+            keyboard=keyboard,
+            resize_keyboard=True
+        )
+    )
+
 @router.message(IsSubscribed(), lambda msg: msg.text == "📚 FAQ")
 async def show_faq_menu(message: types.Message, state: FSMContext):
     await state.set_state(None)
@@ -738,70 +802,6 @@ async def show_leaders(message: types.Message):
         text += f"{medals[i]} {name}: {bal} баллов\n"
 
     await message.answer(text, parse_mode="HTML")
-
-@router.message(lambda msg: msg.text == "⬅️ Назад в меню")
-async def back_to_main(message: types.Message, state: FSMContext):
-    await state.clear()  # Сброс FSM состояния
-    await message.answer("⬅️ Главное меню", reply_markup=main_menu)
-
-@router.message(IsSubscribed(), lambda msg: msg.text == "📩 Пригласить друга")
-async def invite_friend(message: types.Message, state: FSMContext):
-    await state.clear()  # очищаем прошлый state, если есть
-    user_id = message.from_user.id
-    username = (await bot.get_me()).username
-    invite_link = f"https://t.me/{username}?start={user_id}"
-
-    await message.answer(
-        f"🔗 Приглашай друзей и получай баллы!\n"
-        f"Они должны играть 7 дней — тогда ты получишь +12 баллов.\n\n"
-        f"Твоя ссылка:\n<code>{invite_link}</code>",
-        parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="📤 Поделиться", url=f"https://t.me/share/url?url={invite_link}")]
-        ])
-    )
-
-@router.message(lambda msg: msg.text == "🚀 Начать")
-async def handle_launch_button(message: types.Message, bot: Bot):
-    await message.answer(
-    "👋 Привет! Бот работает,для чего он? Вот что с помощью него можно сделать:\n\n"
-    "🗓 Записаться на сеанс\n"
-    "🖼 Посмотреть портфолио\n"
-    "📚 Почитать ответы на частые вопросы\n"
-    "🎲 Играть и получать баллы,их тратим в магазине\n"
-    "👥Также баллы можно получать приглашая друзей\n"
-    "🛍 Совершать покупки в магазине за баллы,получи бесплатное тату!🙀\n"   
-    "🗣 Можно оставить отзыв или задать вопрос в разделе  -прочее-, позже я на него отвечу\n\n"
-    )
-
-@router.message(IsSubscribed(), lambda msg: msg.text == "🎮 Игры")
-async def show_games_menu(message: types.Message, state: FSMContext):
-    await state.set_state(None)
-
-    now = datetime.now().time()
-    start_time = datetime.strptime("00:00", "%H:%M").time()
-    end_time = datetime.strptime("03:00", "%H:%M").time()
-    is_night = start_time <= now <= end_time or message.from_user.id == ADMIN_ID
-
-    keyboard = [
-        [KeyboardButton(text="🪨 Камень-ножницы-бумага")],
-        [KeyboardButton(text="🎡 Колесо Фортуны")]
-    ]
-    if is_night:
-        keyboard.append([KeyboardButton(text="🎰 Тату-Джекпот")])
-
-    keyboard.append([KeyboardButton(text="⬅️ Назад в меню")])
-
-    await message.answer(
-        "🎮 Выбери игру:\n\n"
-        "🪨 Камень-ножницы-бумага — сыграй с ботом\n"
-        "🎡 Колесо Фортуны — 1 раз в день шанс на халявные баллы\n\n"
-        + ("🎰 Тату-Джекпот доступен сейчас!" if is_night else "⏳ Джекпот доступен только ночью (00:00–03:00)"),
-        reply_markup=ReplyKeyboardMarkup(
-            keyboard=keyboard,
-            resize_keyboard=True
-        )
-    )
 
 @router.callback_query(lambda c: c.data.startswith("choose_time:"))
 async def start_zapis_fsm(callback: CallbackQuery, state: FSMContext):
