@@ -72,12 +72,12 @@ BROADCAST_FLAG_FILE = "broadcast_status.txt"
 LAST_RESET_FILE = "last_reset.txt"
 PURCHASE_LOG_FILE = "purchase_log.txt"
 ADMIN_ID = 1065790644 
-CHANNEL_USERNAME = "@ne_kit_a_tattoo"  
-API_TOKEN = '8016153276:AAHAWpokeEmg1VNIm0WPxn_nsPbblKj3yPU'
+CHANNEL_USERNAME = "@nikita_tattoooo"  
+API_TOKEN = '7753903377:AAHZ4zEJ7gJLw6VmBpz_Q-QbkddGrY84Dig'
 BARNAUL_USERS_FILE = "barnaul_users.txt"
 WHEEL_LOG_FILE = "wheel_log.txt"
 
-CHANEL_ID = -1002651916205
+
 
 
 
@@ -140,8 +140,6 @@ def save_barnaul_user(user_id: int):
         f.write(f"{user_id}\n")    
 
 
-
-
 async def check_subscription(user_id: int, bot: Bot) -> bool:
     try:
         member = await bot.get_chat_member(CHANNEL_USERNAME, user_id)
@@ -154,7 +152,7 @@ class IsSubscribed(BaseFilter):
         return await check_subscription(message.from_user.id, bot)
 
 # Создание объектов
-bot = Bot (token='8016153276:AAHAWpokeEmg1VNIm0WPxn_nsPbblKj3yPU')
+bot = Bot (token='7753903377:AAHZ4zEJ7gJLw6VmBpz_Q-QbkddGrY84Dig')
 bot.default_parse_mode = ParseMode.HTML
 dp = Dispatcher(storage=MemoryStorage())
 router = Router()
@@ -179,7 +177,7 @@ main_menu = ReplyKeyboardMarkup(
 other_menu = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="🏆 Лидеры")],
-        [KeyboardButton(text="✍️ Задать вопрос или написать отзыв")],
+        [KeyboardButton(text="✍️ опубликовать вопрос или написать отзыв(анонимно или публично)")],
         [KeyboardButton(text="🧾 Все вопросы и отзывы")],
         [KeyboardButton(text="📊 Мой баланс")],
         [KeyboardButton(text="👥 Мои приглашённые")],
@@ -258,14 +256,6 @@ async def show_calendar(message: types.Message):
         "📅 Выбери день для добавления времени:",
         reply_markup=keyboard
     )
-
-
-
-@router.message(lambda msg: msg.text == "✍️ Задать вопрос или написать отзыв")
-async def ask_question(message: types.Message, state: FSMContext):
-    await state.set_state(QuestionFSM.text)
-    await message.answer("✏️ Напиши свой вопрос или отзыв:")
-
 
 @router.message(QuestionFSM.text)
 async def choose_mode(message: types.Message, state: FSMContext):
@@ -435,7 +425,6 @@ async def save_reply(message: types.Message, state: FSMContext):
 
 @router.message(CommandStart(deep_link=True))
 @router.message(CommandStart())
-
 
 @router.message(CommandStart())
 async def cmd_start(message: types.Message, bot: Bot, state: FSMContext, command: CommandObject):
@@ -673,6 +662,8 @@ async def save_custom_time(message: types.Message, state: FSMContext):
     await message.answer(f"✅ Добавлено: {date} — {time}")
     await state.clear()
 
+
+
 @router.message(IsSubscribed(), lambda msg: msg.text == "✍️ Записаться")
 async def select_date(message: types.Message, state: FSMContext):
     path = "available_slots.json"
@@ -702,10 +693,21 @@ async def select_date(message: types.Message, state: FSMContext):
     )
     await state.set_state(DateSelectFSM.chosen_date)
     
+    
 @router.message(IsSubscribed(), lambda msg: msg.text == "🖼 Портфолио")
 async def show_portfolio(message: types.Message, state: FSMContext):
     await state.set_state(None)
     await message.answer("🖼 Моё портфолио здесь:\n👉 https://t.me/ne_kit_a_tattoo/14")
+
+@router.message(IsSubscribed(), lambda msg: msg.text == "📚 FAQ")
+async def show_faq_menu(message: types.Message, state: FSMContext):
+    await state.set_state(None)
+    await message.answer("Выбери интересующий вопрос:", reply_markup=faq_keyboard) 
+
+@router.message(lambda msg: msg.text == "⬅️ Назад в меню")
+async def back_to_main(message: types.Message, state: FSMContext):
+    await state.clear()  # Сброс FSM состояния
+    await message.answer("⬅️ Главное меню", reply_markup=main_menu)
 
 @router.message(lambda msg: msg.text == "🚀 Начать")
 async def handle_launch_button(message: types.Message, bot: Bot):
@@ -719,11 +721,6 @@ async def handle_launch_button(message: types.Message, bot: Bot):
     "🛍 Совершать покупки в магазине за баллы,получи бесплатное тату!🙀\n"   
     "🗣 Можно оставить отзыв или задать вопрос в разделе  -прочее-, позже я на него отвечу\n\n"
     )
-
-@router.message(lambda msg: msg.text == "⬅️ Назад в меню")
-async def back_to_main(message: types.Message, state: FSMContext):
-    await state.clear()  # Сброс FSM состояния
-    await message.answer("⬅️ Главное меню", reply_markup=main_menu)
 
 @router.message(IsSubscribed(), lambda msg: msg.text == "📩 Пригласить друга")
 async def invite_friend(message: types.Message, state: FSMContext):
@@ -770,38 +767,6 @@ async def show_games_menu(message: types.Message, state: FSMContext):
             resize_keyboard=True
         )
     )
-
-@router.message(IsSubscribed(), lambda msg: msg.text == "📚 FAQ")
-async def show_faq_menu(message: types.Message, state: FSMContext):
-    await state.set_state(None)
-    await message.answer("Выбери интересующий вопрос:", reply_markup=faq_keyboard) 
-
-@router.message(lambda msg: msg.text == "🏆 Лидеры")
-async def show_leaders(message: types.Message):
-    if not os.path.exists(BALANCE_FILE):
-        await message.answer("Пока нет данных.")
-        return
-
-    balances = []
-    with open(BALANCE_FILE, "r") as f:
-        for line in f:
-            uid, bal = line.strip().split(":")
-            balances.append((int(uid), int(bal)))
-
-    top = sorted(balances, key=lambda x: x[1], reverse=True)[:3]
-    medals = ["🥇", "🥈", "🥉"]
-    text = "🏆 <b>Топ 3 участников по баллам:</b>\n\n"
-
-    for i, (uid, bal) in enumerate(top):
-        try:
-            user_info = await bot.get_chat(uid)
-            name = f"@{user_info.username}" if user_info.username else user_info.full_name
-        except:
-            name = f"ID {uid}"
-
-        text += f"{medals[i]} {name}: {bal} баллов\n"
-
-    await message.answer(text, parse_mode="HTML")
 
 @router.callback_query(lambda c: c.data.startswith("choose_time:"))
 async def start_zapis_fsm(callback: CallbackQuery, state: FSMContext):
@@ -940,18 +905,7 @@ async def show_shop(message: types.Message, state: FSMContext):
 
 @router.message(ZapisFSM.age)
 async def get_age(message: types.Message, state: FSMContext):
-    # ⛔️ Если человек нажал любую кнопку из меню — не обрабатываем
-    if message.text in [
-        "✍️ Записаться",
-        "🖼 Портфолио",
-        "📚 FAQ",
-        "🎮 Игры",
-        "🛍 Магазин",
-        "📩 Пригласить друга",
-        "⚙️ Прочее"
-    ]:
-        await state.clear()
-        return
+    
 
     try:
         age = int(message.text)
@@ -1454,7 +1408,32 @@ async def get_display_name(user: types.User = None, user_id: int = None) -> str:
 
     return "Неизвестный"
 
+@router.message(lambda msg: msg.text == "🏆 Лидеры")
+async def show_leaders(message: types.Message):
+    if not os.path.exists(BALANCE_FILE):
+        await message.answer("Пока нет данных.")
+        return
 
+    balances = []
+    with open(BALANCE_FILE, "r") as f:
+        for line in f:
+            uid, bal = line.strip().split(":")
+            balances.append((int(uid), int(bal)))
+
+    top = sorted(balances, key=lambda x: x[1], reverse=True)[:3]
+    medals = ["🥇", "🥈", "🥉"]
+    text = "🏆 <b>Топ 3 участников по баллам:</b>\n\n"
+
+    for i, (uid, bal) in enumerate(top):
+        try:
+            user_info = await bot.get_chat(uid)
+            name = f"@{user_info.username}" if user_info.username else user_info.full_name
+        except:
+            name = f"ID {uid}"
+
+        text += f"{medals[i]} {name}: {bal} баллов\n"
+
+    await message.answer(text, parse_mode="HTML")
 
 @router.message(lambda msg: msg.text == "📆 Заявки по дате" and msg.from_user.id == ADMIN_ID)
 async def ask_for_date(message: types.Message, state: FSMContext):
@@ -1870,6 +1849,23 @@ async def clean_logs_command(message: Message):
     await message.answer("✅ Логи очищены. Архив отправляю:")
     with open(archive_file, "rb") as f:
         await bot.send_document(ADMIN_ID, f)
+
+@router.message(lambda msg: msg.text == "❌ Отменить отзыв")
+async def cancel_question(message: types.Message, state: FSMContext):
+    await state.clear()
+    await message.answer("❌ Отзыв отменён. Ты в главном меню.", reply_markup=main_menu)
+
+@router.message(lambda msg: msg.text == "✍️ опубликовать вопрос или написать отзыв(анонимно или публично)")
+async def ask_question(message: types.Message, state: FSMContext):
+    await state.clear()
+    await state.set_state(QuestionFSM.text)
+    cancel_question_kb = ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="❌ Отменить отзыв")]],
+        resize_keyboard=True
+    )
+    await message.answer("✏️ Напиши свой вопрос или отзыв:", reply_markup=cancel_question_kb)
+
+
 
 
 
