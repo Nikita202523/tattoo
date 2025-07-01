@@ -73,7 +73,7 @@ LAST_RESET_FILE = "last_reset.txt"
 PURCHASE_LOG_FILE = "purchase_log.txt"
 ADMIN_ID = 1065790644 
 CHANNEL_USERNAME = "@nikita_tattoooo"  
-API_TOKEN = '7753903377:AAHZ4zEJ7gJLw6VmBpz_Q-QbkddGrY84Dig'
+API_TOKEN = '8016153276:AAHAWpokeEmg1VNIm0WPxn_nsPbblKj3yPU'
 BARNAUL_USERS_FILE = "barnaul_users.txt"
 WHEEL_LOG_FILE = "wheel_log.txt"
 
@@ -152,7 +152,7 @@ class IsSubscribed(BaseFilter):
         return await check_subscription(message.from_user.id, bot)
 
 # Создание объектов
-bot = Bot (token='7753903377:AAHZ4zEJ7gJLw6VmBpz_Q-QbkddGrY84Dig')
+bot = Bot (token='8016153276:AAHAWpokeEmg1VNIm0WPxn_nsPbblKj3yPU')
 bot.default_parse_mode = ParseMode.HTML
 dp = Dispatcher(storage=MemoryStorage())
 router = Router()
