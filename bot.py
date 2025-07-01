@@ -712,6 +712,68 @@ async def show_faq_menu(message: types.Message, state: FSMContext):
     await state.set_state(None)
     await message.answer("Выбери интересующий вопрос:", reply_markup=faq_keyboard) 
 
+@router.message(lambda msg: msg.text == "🏆 Лидеры")
+async def show_leaders(message: types.Message):
+    if not os.path.exists(BALANCE_FILE):
+        await message.answer("Пока нет данных.")
+        return
+
+    balances = []
+    with open(BALANCE_FILE, "r") as f:
+        for line in f:
+            uid, bal = line.strip().split(":")
+            balances.append((int(uid), int(bal)))
+
+    top = sorted(balances, key=lambda x: x[1], reverse=True)[:3]
+    medals = ["🥇", "🥈", "🥉"]
+    text = "🏆 <b>Топ 3 участников по баллам:</b>\n\n"
+
+    for i, (uid, bal) in enumerate(top):
+        try:
+            user_info = await bot.get_chat(uid)
+            name = f"@{user_info.username}" if user_info.username else user_info.full_name
+        except:
+            name = f"ID {uid}"
+
+        text += f"{medals[i]} {name}: {bal} баллов\n"
+
+    await message.answer(text, parse_mode="HTML")
+
+@router.message(lambda msg: msg.text == "⬅️ Назад в меню")
+async def back_to_main(message: types.Message, state: FSMContext):
+    await state.clear()  # Сброс FSM состояния
+    await message.answer("⬅️ Главное меню", reply_markup=main_menu)
+
+@router.message(IsSubscribed(), lambda msg: msg.text == "📩 Пригласить друга")
+async def invite_friend(message: types.Message, state: FSMContext):
+    await state.clear()  # очищаем прошлый state, если есть
+    user_id = message.from_user.id
+    username = (await bot.get_me()).username
+    invite_link = f"https://t.me/{username}?start={user_id}"
+
+    await message.answer(
+        f"🔗 Приглашай друзей и получай баллы!\n"
+        f"Они должны играть 7 дней — тогда ты получишь +12 баллов.\n\n"
+        f"Твоя ссылка:\n<code>{invite_link}</code>",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📤 Поделиться", url=f"https://t.me/share/url?url={invite_link}")]
+        ])
+    )
+
+@router.message(lambda msg: msg.text == "🚀 Начать")
+async def handle_launch_button(message: types.Message, bot: Bot):
+    await message.answer(
+    "👋 Привет! Бот работает,для чего он? Вот что с помощью него можно сделать:\n\n"
+    "🗓 Записаться на сеанс\n"
+    "🖼 Посмотреть портфолио\n"
+    "📚 Почитать ответы на частые вопросы\n"
+    "🎲 Играть и получать баллы,их тратим в магазине\n"
+    "👥Также баллы можно получать приглашая друзей\n"
+    "🛍 Совершать покупки в магазине за баллы,получи бесплатное тату!🙀\n"   
+    "🗣 Можно оставить отзыв или задать вопрос в разделе  -прочее-, позже я на него отвечу\n\n"
+    )
+
 @router.message(IsSubscribed(), lambda msg: msg.text == "🎮 Игры")
 async def show_games_menu(message: types.Message, state: FSMContext):
     await state.set_state(None)
@@ -1392,54 +1454,7 @@ async def get_display_name(user: types.User = None, user_id: int = None) -> str:
 
     return "Неизвестный"
 
-@router.message(lambda msg: msg.text == "🏆 Лидеры")
-async def show_leaders(message: types.Message):
-    if not os.path.exists(BALANCE_FILE):
-        await message.answer("Пока нет данных.")
-        return
 
-    balances = []
-    with open(BALANCE_FILE, "r") as f:
-        for line in f:
-            uid, bal = line.strip().split(":")
-            balances.append((int(uid), int(bal)))
-
-    top = sorted(balances, key=lambda x: x[1], reverse=True)[:3]
-    medals = ["🥇", "🥈", "🥉"]
-    text = "🏆 <b>Топ 3 участников по баллам:</b>\n\n"
-
-    for i, (uid, bal) in enumerate(top):
-        try:
-            user_info = await bot.get_chat(uid)
-            name = f"@{user_info.username}" if user_info.username else user_info.full_name
-        except:
-            name = f"ID {uid}"
-
-        text += f"{medals[i]} {name}: {bal} баллов\n"
-
-    await message.answer(text, parse_mode="HTML")
-
-@router.message(lambda msg: msg.text == "⬅️ Назад в меню")
-async def back_to_main(message: types.Message, state: FSMContext):
-    await state.clear()  # Сброс FSM состояния
-    await message.answer("⬅️ Главное меню", reply_markup=main_menu)
-
-@router.message(IsSubscribed(), lambda msg: msg.text == "📩 Пригласить друга")
-async def invite_friend(message: types.Message, state: FSMContext):
-    await state.clear()  # очищаем прошлый state, если есть
-    user_id = message.from_user.id
-    username = (await bot.get_me()).username
-    invite_link = f"https://t.me/{username}?start={user_id}"
-
-    await message.answer(
-        f"🔗 Приглашай друзей и получай баллы!\n"
-        f"Они должны играть 7 дней — тогда ты получишь +12 баллов.\n\n"
-        f"Твоя ссылка:\n<code>{invite_link}</code>",
-        parse_mode="HTML",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="📤 Поделиться", url=f"https://t.me/share/url?url={invite_link}")]
-        ])
-    )
 
 @router.message(lambda msg: msg.text == "📆 Заявки по дате" and msg.from_user.id == ADMIN_ID)
 async def ask_for_date(message: types.Message, state: FSMContext):
@@ -1731,18 +1746,7 @@ async def show_zayavki(message: types.Message):
         if block:
             await message.answer(f"📌 Заявка:\n{block}")            
 
-@router.message(lambda msg: msg.text == "🚀 Начать")
-async def handle_launch_button(message: types.Message, bot: Bot):
-    await message.answer(
-    "👋 Привет! Бот работает,для чего он? Вот что с помощью него можно сделать:\n\n"
-    "🗓 Записаться на сеанс\n"
-    "🖼 Посмотреть портфолио\n"
-    "📚 Почитать ответы на частые вопросы\n"
-    "🎲 Играть и получать баллы,их тратим в магазине\n"
-    "👥Также баллы можно получать приглашая друзей\n"
-    "🛍 Совершать покупки в магазине за баллы,получи бесплатное тату!🙀\n"   
-    "🗣 Можно оставить отзыв или задать вопрос в разделе  -прочее-, позже я на него отвечу\n\n"
-    )
+
 @router.message(lambda msg: msg.text == "🛒 Покупки")
 async def show_purchase_log(message: types.Message):
     if message.from_user.id != ADMIN_ID:
