@@ -23,7 +23,7 @@ from aiogram.types import (
 from aiogram.filters import CommandStart, BaseFilter
 from aiogram.filters.command import CommandObject, Command
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import FSInputFile
+from aiogram.types import FSInputFiles
 
 
 # Гарантируем, что файл слотов существует и валиден
@@ -235,14 +235,7 @@ class ZapisFSM(StatesGroup):
     sketch = State()
     date_time = State()
 
-@router.message(Command("Календарь"))
-async def show_calendar(message: types.Message):
-    if message.from_user.id != ADMIN_ID:
-        return
 
-    now = datetime.now()
-    keyboard = generate_calendar(now.year, now.month)
-    await message.answer("Календарь", reply_markup=keyboard)
 
 @router.message(Command("Календарь"))
 async def show_calendar(message: types.Message):
