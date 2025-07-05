@@ -312,7 +312,7 @@ async def show_all_questions(message: types.Message, state: FSMContext):
 
     entries = [q.strip() for q in raw.split("---") if q.strip()]
     if not entries:
-        await message.answer("❌ Пока нет записей.")
+        await message.answer("❌ Нет свободных окон, если срочно, напиши мне лично.")
         return
 
     output = "<b>📖 Все вопросы и отзывы:</b>\n\n"
@@ -438,7 +438,7 @@ async def cmd_start(message: types.Message, bot: Bot, state: FSMContext, command
         if not already_logged:
             with open("referral_log.txt", "a") as f:
                 f.write(f"{user_id}:{ref_id}\n")
-            await message.answer("✅ Ты зашёл по реферальной ссылке! Играя 7 разных дней — получишь +5 баллов, а твой друг — +12.")
+            await message.answer("✅ Ты зашёл по реферальной ссылке! Играя 3 разных дня — получишь +5 баллов, а твой друг — +12.")
 
     # 📍 Дальше — общая логика (всегда идёт, независимо от реферала)
     if is_barnaul_user(user_id):
@@ -563,6 +563,9 @@ async def jackpot_game(message: types.Message, state: FSMContext):
 
 @router.callback_query(lambda c: c.data in ["jackpot_normal", "jackpot_vip"])
 async def handle_jackpot(callback: CallbackQuery):
+    if not can_spin_jackpot(callback.from_user.id):
+        await callback.answer("⏳ Можно не более 3 раз в минуту", show_alert=True)
+    return
     user_id = callback.from_user.id
     is_admin = user_id == ADMIN_ID
     balance = get_balance(user_id)
@@ -592,13 +595,15 @@ async def handle_jackpot(callback: CallbackQuery):
         weights=weights,
         k=1
     )[0]
+
     # Джекпот: проверка, получал ли уже
     if reward == 200:
         if has_received_jackpot(user_id):
             reward = 0
         else:
             log_jackpot_received(user_id)
-    add_balance(user_id, reward)
+
+        add_balance(user_id, reward)
 
     # Итог
     if reward == 0:
@@ -721,7 +726,7 @@ async def invite_friend(message: types.Message, state: FSMContext):
 
     await message.answer(
         f"🔗 Приглашай друзей и получай баллы!\n"
-        f"Они должны играть 7 дней — тогда ты получишь +12 баллов.\n\n"
+        f"Они должны играть 3 дня — тогда ты получишь +12 баллов.\n\n"
         f"Твоя ссылка:\n<code>{invite_link}</code>",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
@@ -1543,11 +1548,40 @@ def log_game_activity(user_id: int):
         with open(path, "w") as f:
             f.writelines(lines)
 
+def can_spin_jackpot(user_id: int) -> bool:
+    now = datetime.now()
+    path = "jackpot_spin_times.txt"
+    times = []
+
+    # Загружаем все времена
+    if os.path.exists(path):
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                uid, ts = line.strip().split(":")
+                if uid == str(user_id):
+                    dt = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+                    times.append(dt)
+
+    # Удаляем старые
+    times = [t for t in times if (now - t).total_seconds() <= 60]
+
+    if len(times) >= 3:
+        return False
+
+    # Сохраняем новое время
+    times.append(now)
+    with open(path, "w", encoding="utf-8") as f:
+        for t in times:
+            f.write(f"{user_id}:{t.strftime('%Y-%m-%d %H:%M:%S')}\n")
+
+    return True
+
 def format_user(user: types.User) -> str:
     if user.username:
         return f"@{user.username}"
     else:
         return f"{user.first_name} {user.last_name or ''}".strip()
+    
     
 @router.channel_post()
 async def handle_channel_post(message: types.Message):
