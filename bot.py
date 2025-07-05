@@ -564,8 +564,8 @@ async def jackpot_game(message: types.Message, state: FSMContext):
 @router.callback_query(lambda c: c.data in ["jackpot_normal", "jackpot_vip"])
 async def handle_jackpot(callback: CallbackQuery):
     if not can_spin_jackpot(callback.from_user.id):
-        await callback.answer("⏳ Можно не более 3 раз в минуту", show_alert=True)
-    return
+        await callback.answer("⏳ Крутить можно не чаще 1 раза в 3 секунды", show_alert=True)
+        return
     user_id = callback.from_user.id
     is_admin = user_id == ADMIN_ID
     balance = get_balance(user_id)
@@ -591,10 +591,10 @@ async def handle_jackpot(callback: CallbackQuery):
     weights = [35, 25, 20, 12, 6, 2]
 
     reward = random.choices(
-        [0, 5, 10, 30, 50, 200],  # награды
-        weights=weights,
-        k=1
-    )[0]
+    [0, 5, 10, 30, 50, 200],  # награды
+    weights=weights,
+    k=1
+)[0]
 
     # Джекпот: проверка, получал ли уже
     if reward == 200:
@@ -603,7 +603,7 @@ async def handle_jackpot(callback: CallbackQuery):
         else:
             log_jackpot_received(user_id)
 
-        add_balance(user_id, reward)
+    add_balance(user_id, reward)
 
     # Итог
     if reward == 0:
@@ -692,7 +692,7 @@ async def select_date(message: types.Message, state: FSMContext):
 @router.message(IsSubscribed(), lambda msg: msg.text == "🖼 Портфолио")
 async def show_portfolio(message: types.Message, state: FSMContext):
     await state.set_state(None)
-    await message.answer("🖼 Моё портфолио здесь:\n👉 https://t.me/ne_kit_a_tattoo/14")
+    await message.answer("🖼 Моё портфолио здесь:\n🫸🏾 https://t.me/portfolio_nikita_tattoo/3 🫷🏾")
 
 @router.message(IsSubscribed(), lambda msg: msg.text == "📚 FAQ")
 async def show_faq_menu(message: types.Message, state: FSMContext):
@@ -739,6 +739,9 @@ async def show_games_menu(message: types.Message, state: FSMContext):
     reset_balances_if_needed()
     await state.set_state(None)
 
+    user_id = message.from_user.id
+    balance = get_balance(user_id)
+
     now = datetime.now().time()
     start_time = datetime.strptime("00:00", "%H:%M").time()
     end_time = datetime.strptime("03:00", "%H:%M").time()
@@ -754,14 +757,16 @@ async def show_games_menu(message: types.Message, state: FSMContext):
     keyboard.append([KeyboardButton(text="⬅️ Назад в меню")])
 
     await message.answer(
-        "🎮 Выбери игру:\n\n"
+        f"🎮 Выбери игру:\n\n"
+        f"💰 Твой баланс: <b>{balance}</b> баллов\n\n"
         "🪨 Камень-ножницы-бумага — сыграй с ботом\n"
         "🎡 Колесо Фортуны — 1 раз в день шанс на халявные баллы\n\n"
         + ("🎰 Тату-Джекпот доступен сейчас!" if is_night else "⏳ Джекпот доступен только ночью (00:00–03:00)"),
         reply_markup=ReplyKeyboardMarkup(
             keyboard=keyboard,
             resize_keyboard=True
-        )
+        ),
+        parse_mode="HTML"
     )
 
 @router.callback_query(lambda c: c.data.startswith("choose_time:"))
@@ -1551,28 +1556,29 @@ def log_game_activity(user_id: int):
 def can_spin_jackpot(user_id: int) -> bool:
     now = datetime.now()
     path = "jackpot_spin_times.txt"
-    times = []
+    last_time = None
+    lines = []
 
-    # Загружаем все времена
+    # Считываем все строки, ищем свою
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             for line in f:
-                uid, ts = line.strip().split(":")
+                uid, ts = line.strip().split(":", 1)
                 if uid == str(user_id):
-                    dt = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
-                    times.append(dt)
+                    last_time = datetime.strptime(ts, "%Y-%m-%d %H:%M:%S")
+                else:
+                    lines.append(line.strip())
 
-    # Удаляем старые
-    times = [t for t in times if (now - t).total_seconds() <= 60]
-
-    if len(times) >= 3:
+    # Проверяем, сколько прошло
+    if last_time and (now - last_time).total_seconds() < 3:
         return False
 
-    # Сохраняем новое время
-    times.append(now)
+    # Добавляем или обновляем свою запись
+    lines.append(f"{user_id}:{now.strftime('%Y-%m-%d %H:%M:%S')}")
+
     with open(path, "w", encoding="utf-8") as f:
-        for t in times:
-            f.write(f"{user_id}:{t.strftime('%Y-%m-%d %H:%M:%S')}\n")
+        for line in lines:
+            f.write(line + "\n")
 
     return True
 
