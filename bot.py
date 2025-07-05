@@ -592,7 +592,12 @@ async def handle_jackpot(callback: CallbackQuery):
         weights=weights,
         k=1
     )[0]
-
+    # Джекпот: проверка, получал ли уже
+    if reward == 200:
+        if has_received_jackpot(user_id):
+            reward = 0
+        else:
+            log_jackpot_received(user_id)
     add_balance(user_id, reward)
 
     # Итог
