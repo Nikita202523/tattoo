@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.types import Message
+from dotenv import load_dotenv
 router = Router()
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -24,6 +25,15 @@ from aiogram.filters import CommandStart, BaseFilter
 from aiogram.filters.command import CommandObject, Command
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import FSInputFile
+from aiogram.filters import StateFilter
+from aiogram import Router
+
+
+load_dotenv()  # Загружает переменные из .env
+
+API_TOKEN = os.getenv("BOT_TOKEN")
+ADMIN_ID = int(os.getenv("ADMIN_ID"))
+CHANNEL_USERNAME = os.getenv("CHANNEL_USERNAME")
 
 
 # Гарантируем, что файл слотов существует и валиден
@@ -71,9 +81,6 @@ SLOT_LIMIT_FILE = "slot_limits.txt"
 BROADCAST_FLAG_FILE = "broadcast_status.txt"
 LAST_RESET_FILE = "last_reset.txt"
 PURCHASE_LOG_FILE = "purchase_log.txt"
-ADMIN_ID = 1065790644 
-CHANNEL_USERNAME = "@ne_kit_a_tattoo"  
-API_TOKEN = '8016153276:AAHAWpokeEmg1VNIm0WPxn_nsPbblKj3yPU'
 BARNAUL_USERS_FILE = "barnaul_users.txt"
 WHEEL_LOG_FILE = "wheel_log.txt"
 JACKPOT_LOG_FILE = "jackpot_log.txt"
@@ -152,11 +159,12 @@ class IsSubscribed(BaseFilter):
         return await check_subscription(message.from_user.id, bot)
 
 # Создание объектов
-bot = Bot (token='8016153276:AAHAWpokeEmg1VNIm0WPxn_nsPbblKj3yPU')
-bot.default_parse_mode = ParseMode.HTML
-dp = Dispatcher(storage=MemoryStorage())
-router = Router()
+bot = Bot(token=os.getenv("BOT_TOKEN"))  # Токен берётся из .env
+bot.default_parse_mode = ParseMode.HTML  # Устанавливаем HTML как режим разметки по умолчанию
+dp = Dispatcher(storage=MemoryStorage())  # Создаём диспетчер с хранилищем в памяти
+router = Router()  # Создаём роутер
 dp.include_router(router)
+
 
 
 
